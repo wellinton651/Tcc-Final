@@ -1,0 +1,263 @@
+-- Criar banco de dados
+create DATABASE sistema_escolar;-- CRIAR E USAR O BANCO DE DADOS
+-- ======================================
+USE sistema_escolar;
+
+CREATE TABLE disciplinas (
+  id_disciplina INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(120) NOT NULL UNIQUE,
+  descricao TEXT NULL
+);
+
+CREATE TABLE dias_semana (
+    id_dia INT AUTO_INCREMENT PRIMARY KEY,
+    nome_dia VARCHAR(20)
+);
+
+CREATE TABLE periodos (
+    id_periodo INT AUTO_INCREMENT PRIMARY KEY,
+    nome_periodo VARCHAR(20)
+);
+
+CREATE TABLE grade_horarios (
+    id_grade INT AUTO_INCREMENT PRIMARY KEY,
+    id_turma INT,
+    id_programacao INT,
+    id_dia INT,
+    id_periodo INT,
+    horario TIME,
+    FOREIGN KEY (id_turma) REFERENCES turmas(id_turma),
+    FOREIGN KEY (id_programacao) REFERENCES programacao_curricular(id_programacao),
+    FOREIGN KEY (id_dia) REFERENCES dias_semana(id_dia),
+    FOREIGN KEY (id_periodo) REFERENCES periodos(id_periodo)
+);
+
+CREATE TABLE professor_alocacao (
+    id_alocacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_programacao INT,
+    id_turma INT,
+    id_professor INT,
+    FOREIGN KEY (id_programacao) REFERENCES programacao_curricular(id_programacao),
+    FOREIGN KEY (id_turma) REFERENCES turmas(id_turma),
+    FOREIGN KEY (id_professor) REFERENCES professores(id_professor)
+);
+
+-- Tabela: tipos_ocorrencia (substitui ENUM)
+CREATE TABLE tipos_ocorrencia (
+    id_tipo INT AUTO_INCREMENT PRIMARY KEY,
+    descricao VARCHAR(50) NOT NULL
+);
+
+-- Tabela: professores
+CREATE TABLE professores (
+    id_professor INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    senha VARCHAR(100) NOT NULL,
+    foto_perfil LONGBLOB NULL
+    -- Obs: senha armazenada em texto plano apenas para fins didáticos
+);
+
+-- Tabela: turmas
+CREATE TABLE turmas (
+    id_turma INT AUTO_INCREMENT PRIMARY KEY,
+    nome_turma VARCHAR(50) NOT NULL,
+    ano_letivo YEAR NOT NULL
+);
+
+-- Tabela: alunos
+CREATE TABLE alunos (
+    id_aluno INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    data_nascimento DATE NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    senha VARCHAR(100) NOT NULL,
+    id_turma INT,
+    FOREIGN KEY (id_turma) REFERENCES turmas(id_turma)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
+
+-- Tabela: notas
+CREATE TABLE notas (
+    id_nota INT AUTO_INCREMENT PRIMARY KEY,
+    id_aluno INT,
+    disciplina VARCHAR(100),
+    nota DECIMAL(5,2),
+    bimestre INT CHECK (bimestre BETWEEN 1 AND 4),
+    FOREIGN KEY (id_aluno) REFERENCES alunos(id_aluno)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- Tabela: ocorrencias
+CREATE TABLE ocorrencias (
+    id_ocorrencia INT AUTO_INCREMENT PRIMARY KEY,
+    id_aluno INT,
+    id_professor INT,
+    data_ocorrencias DATE NOT NULL,
+    descricao TEXT,
+    id_tipo INT,
+    FOREIGN KEY (id_aluno) REFERENCES alunos(id_aluno)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (id_professor) REFERENCES professores(id_professor)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    FOREIGN KEY (id_tipo) REFERENCES tipos_ocorrencia(id_tipo)
+);
+
+
+-- Tabela: tarefas
+CREATE TABLE tarefas (
+    id_tarefa INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    data_entrega DATE,
+    id_professor INT,
+    id_turma INT,
+    FOREIGN KEY (id_professor) REFERENCES professores(id_professor)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    FOREIGN KEY (id_turma) REFERENCES turmas(id_turma)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
+
+-- Tabela: programacao_curricular
+CREATE TABLE programacao_curricular (
+    id_programacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_turma INT,
+    disciplina VARCHAR(100),
+    carga_horaria INT CHECK (carga_horaria > 0),
+    FOREIGN KEY (id_turma) REFERENCES turmas(id_turma)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- Tabela: eventos
+CREATE TABLE eventos (
+    id_evento INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    data_evento DATE NOT NULL
+);
+
+
+CREATE TABLE acessos_sistema (
+    id_acesso INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_usuario ENUM('aluno', 'professor') NOT NULL,
+    id_usuario INT NOT NULL,
+    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    endereco_ip VARCHAR(45),
+    tipo_acesso VARCHAR(50),
+    status_acesso ENUM('sucesso', 'falha') DEFAULT 'sucesso',
+    user_agent TEXT,
+    token_acesso VARCHAR(255),
+   
+    -- Não é possível usar uma FK direta para duas tabelas diferentes,
+    -- então você pode validar isso via lógica de aplicação (backend)
+   
+    INDEX (tipo_usuario, id_usuario)
+);
+-- ======================================
+-- DADOS INICIAIS
+-- ======================================
+
+INSERT INTO periodos (nome_periodo) VALUES ('Manhã'),('Tarde'),('Noite');
+
+INSERT INTO disciplinas (nome, descricao) VALUES
+('Matemática','Matemática básica e avançada'),
+('Português','Língua Portuguesa'),
+('Ciências','Ciências Naturais'),
+('História','História Geral e do Brasil'),
+('Geografia','Geografia e Cartografia'),
+('Inglês','Inglês Básico e Intermediário'),
+('Educação Física','Atividades físicas e saúde');
+
+-- Tipos de Ocorrência
+INSERT INTO tipos_ocorrencia (descricao) VALUES
+('Advertência'),
+('Suspensão'),
+('Outros'),
+('Falta Justificada'),
+('Falta Injustificada'),
+('Atraso'),
+('Comportamento Inadequado'),
+('Participação Destaque');
+
+-- Professores
+INSERT INTO professores (nome, email, senha) VALUES
+('Eduardo Rosa Silva', '0001082011@senaimgaluno.com.br', '123');
+
+-- Turmas
+INSERT INTO turmas (nome_turma, ano_letivo) VALUES
+('1º Ano A', 2025),
+('2º Ano B', 2025),
+('3º Ano C', 2025),
+('1º Ano D', 2025),
+('2º Ano E', 2025);
+
+-- Alunos
+INSERT INTO alunos (nome, data_nascimento, email, senha, id_turma) VALUES
+('João Silva', '2010-04-15', 'joao.silva@aluno.com', 'aluno123', 1),
+('Maria Oliveira', '2009-10-22', 'maria.oliveira@aluno.com', 'aluno456', 2),
+('Pedro Santos', '2011-07-11', 'pedro.santos@aluno.com', 'aluno789', 1),
+('Ana Clara', '2008-12-30', 'ana.clara@aluno.com', 'alunoabc', 3),
+('Lucas Pereira', '2010-01-25', 'lucas.pereira@aluno.com', 'alunoxyz', 2),
+('Sofia Almeida', '2009-05-20', 'sofia.almeida@aluno.com', 'aluno111', 3),
+('Gabriel Costa', '2011-08-18', 'gabriel.costa@aluno.com', 'aluno222', 4),
+('Mariana Rocha', '2010-11-05', 'mariana.rocha@aluno.com', 'aluno333', 5);
+
+-- Notas
+INSERT INTO notas (id_aluno, disciplina, nota, bimestre) VALUES
+(1, 'Matemática', 8.5, 1),
+(1, 'Português', 7.0, 1),
+(2, 'Matemática', 9.0, 1),
+(2, 'Português', 8.0, 1),
+(3, 'História', 6.5, 2),
+(3, 'Ciências', 7.8, 2),
+(4, 'Matemática', 5.5, 3),
+(4, 'Português', 6.0, 3),
+(5, 'Inglês', 9.5, 1),
+(6, 'História', 8.3, 2),
+(7, 'Geografia', 7.9, 1),
+(8, 'Educação Física', 10.0, 1);
+
+-- Ocorrências
+INSERT INTO ocorrencias (id_aluno, data_ocorrencias, descricao, id_tipo) VALUES
+(1, '2025-03-15', 'Aluno conversando em sala durante a explicação.', 1),
+(2, '2025-04-10', 'Aluno ausente por 3 dias sem justificativa.', 3),
+(3, '2025-05-02', 'Chegou atrasado 20 minutos.', 6),
+(4, '2025-06-12', 'Participação destaque na Feira de Ciências.', 8),
+(5, '2025-07-18', 'Falta justificada por atestado médico.', 4),
+(6, '2025-08-01', 'Discussão com colega em sala.', 7),
+(7, '2025-08-05', 'Atraso recorrente nas aulas.', 6),
+(8, '2025-08-10', 'Comportamento exemplar em evento escolar.', 8);
+
+-- Tarefas
+INSERT INTO tarefas (titulo, descricao, data_entrega, id_professor, id_turma) VALUES
+('Trabalho de Ciências', 'Montar maquete do sistema solar.', '2025-09-01', 1, 1),
+('Redação sobre o Meio Ambiente', 'Escrever uma redação com mínimo de 20 linhas.', '2025-09-05', 2, 2),
+('Projeto de História', 'Pesquisa sobre a Revolução Industrial.', '2025-09-10', 3, 3),
+('Atividade de Inglês', 'Tradução de texto.', '2025-09-15', 4, 4),
+('Experimento de Física', 'Construir ponte com palitos de picolé.', '2025-09-20', 5, 5);
+
+-- Programação Curricular
+INSERT INTO programacao_curricular (id_turma, disciplina, carga_horaria) VALUES
+(1, 'Matemática', 80),
+(1, 'Português', 100),
+(2, 'Matemática', 90),
+(2, 'História', 70),
+(3, 'Ciências', 85),
+(3, 'Geografia', 75),
+(4, 'Inglês', 60),
+(5, 'Educação Física', 50);
+
+-- Eventos
+INSERT INTO eventos (titulo, descricao, data_evento) VALUES
+('Festa Junina', 'Festa tradicional com comidas típicas e danças.', '2025-06-20'),
+('Feira de Ciências', 'Apresentação de projetos científicos dos alunos.', '2025-10-15'),
+('Dia do Livro', 'Evento literário com contação de histórias.', '2025-04-23'),
+('Semana da Arte', 'Exposição de trabalhos artísticos dos alunos.', '2025-11-07'),
+('Campeonato Escolar', 'Competições esportivas entre turmas.', '2025-08-25');
